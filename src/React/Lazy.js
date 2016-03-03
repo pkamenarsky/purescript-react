@@ -2,7 +2,7 @@
 
 // module React.Lazy
 
-exports.req = req(a) {
+exports.req = function(a) {
   return function(b){
     return a === b;
   };
