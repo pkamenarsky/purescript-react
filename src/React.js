@@ -19,22 +19,15 @@ function getRefs(this_) {
 }
 exports.getRefs = getRefs;
 
-function childrenToArray(children) {
-  var result = [];
-
-  React.Children.forEach(children, function(child){
-    result.push(child);
-  });
-
-  return result;
-}
-exports.childrenToArray = childrenToArray;
-
 function getChildren(this_) {
   return function(){
     var children = this_.props.children;
 
-    var result = childrenToArray(children);
+    var result = [];
+
+    React.Children.forEach(children, function(child){
+      result.push(child);
+    });
 
     return result;
   };
@@ -53,23 +46,26 @@ function writeState(this_) {
 }
 exports.writeState = writeState;
 
+function writeStateWithCallback(this_, cb) {
+  return function(state){
+    return function(cb){
+      return function() {
+        this_.setState({
+          state: state
+        }, cb);
+        return state;
+      };
+    };
+  };
+}
+exports.writeStateWithCallback = writeStateWithCallback;
+
 function readState(this_) {
   return function(){
     return this_.state.state;
   };
 }
 exports.readState = readState;
-
-function transformState(this_){
-  return function(update){
-    return function(){
-      this_.setState(function(old, props){
-        return {state: update(old.state)};
-      });
-    };
-  };
-}
-exports.transformState = transformState;
 
 function createClass(spec) {
   var result = {

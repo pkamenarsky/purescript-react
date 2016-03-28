@@ -47,13 +47,13 @@ module React
 
   , readState
   , writeState
+  , writeStateWithCallback
   , transformState
 
   , handle
 
   , createClass
   , createClassStateless
-  , createClassStateless'
   , createElement
   , createElementDynamic
   , createElementTagName
@@ -61,7 +61,7 @@ module React
   , createFactory
   ) where
 
-import Prelude (Unit(), pure, return, unit)
+import Prelude (Unit(), ($), bind, pure, return, unit)
 
 import Control.Monad.Eff (Eff())
 
@@ -281,11 +281,17 @@ foreign import getChildren :: forall props state eff. ReactThis props state -> E
 -- | Write the component state.
 foreign import writeState :: forall props state access eff. ReactThis props state -> state -> Eff (state :: ReactState (write :: Write | access) | eff) state
 
+-- | Write the component state with a callback.
+foreign import writeStateWithCallback :: forall props state access eff. ReactThis props state -> state -> Eff (state :: ReactState (write :: Write | access) | eff) Unit -> Eff (state :: ReactState (write :: Write | access) | eff) state
+
 -- | Read the component state.
 foreign import readState :: forall props state access eff. ReactThis props state -> Eff (state :: ReactState (read :: Read | access) | eff) state
 
 -- | Transform the component state by applying a function.
-foreign import transformState :: forall props state eff. ReactThis props state -> (state -> state) -> Eff (state :: ReactState ReadWrite | eff) Unit
+transformState :: forall props state eff. ReactThis props state -> (state -> state) -> Eff (state :: ReactState ReadWrite | eff) state
+transformState ctx f = do
+  state <- readState ctx
+  writeState ctx $ f state
 
 -- | Create a React class from a specification.
 foreign import createClass :: forall props state eff. ReactSpec props state eff -> ReactClass props
@@ -293,10 +299,6 @@ foreign import createClass :: forall props state eff. ReactSpec props state eff 
 -- | Create a stateless React class.
 createClassStateless :: forall props. (props -> ReactElement) -> ReactClass props
 createClassStateless = unsafeCoerce
-
--- | Create a stateless React class with children access.
-createClassStateless' :: forall props. (props -> Array ReactElement -> ReactElement) -> ReactClass props
-createClassStateless' k = createClassStateless \props -> k props (childrenToArray (unsafeCoerce props).children)
 
 -- | Create an event handler.
 foreign import handle :: forall eff ev props state result.  (ev -> EventHandlerContext eff props state result) -> EventHandler ev
@@ -315,9 +317,3 @@ foreign import createElementTagNameDynamic :: forall props. TagName -> props -> 
 
 -- | Create a factory from a React class.
 foreign import createFactory :: forall props. ReactClass props -> props -> ReactElement
-
--- | Internal representation for the children elements passed to a component
-foreign import data Children :: *
-
--- | Internal conversion function from children elements to an array of React elements
-foreign import childrenToArray :: Children -> Array React.ReactElement
